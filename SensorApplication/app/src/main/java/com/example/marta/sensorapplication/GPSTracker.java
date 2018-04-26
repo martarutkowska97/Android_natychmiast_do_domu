@@ -127,7 +127,7 @@ public class GPSTracker{
         fusedLocationProviderClient.removeLocationUpdates(locationCallback);
     }
 
-    private double calculateDistance(){
+    public double calculateDistance(){
 
         double coordDiffX=Math.toRadians(MainActivity.homeCoordinateX - currentCoordinateX);
         double coordDiffY=Math.toRadians(MainActivity.homeCoordinateY - currentCoordinateY);
@@ -142,7 +142,11 @@ public class GPSTracker{
         return distance;
     }
 
-    private String formatDistance(double distance){
+    public float calculateAngleToHome(){
+        return Math.round((Math.atan2(MainActivity.homeCoordinateY-currentCoordinateY, MainActivity.homeCoordinateX-currentCoordinateX))*180/Math.PI);
+    }
+
+    public String formatDistance(double distance){
 
         DecimalFormat decimalFormat=new DecimalFormat("#0.00");
         if(distance>1000){

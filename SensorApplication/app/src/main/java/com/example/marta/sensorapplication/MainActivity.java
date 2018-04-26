@@ -2,6 +2,7 @@ package com.example.marta.sensorapplication;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.content.res.AssetManager;
 import android.graphics.Bitmap;
@@ -15,6 +16,7 @@ import android.os.Handler;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.Gravity;
 import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.RotateAnimation;
@@ -35,6 +37,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private final String homeButtonFile="house.png";
     private final String clockFile="alarm-clock.png";
     private final String arrowFile="arrow1.png";
+    private final String angryFaceFile="angry.png";
+
+    public static final String DOM="Czy na pewno tu jest Twój dom?";
+    public static final String TAK="TAK";
+    public static final String NIE="NIE";
+    public static final String ZAPISANO="Zapisano jako dom";
 
     public static final String SHARED_PREFERENCES_X_COORD = "xcoord";
     public static final String SHARED_PREFERENCES_Y_COORD = "ycoord";
@@ -53,7 +61,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private SensorManager sensorManager;
     private float currentAzimuth = 0f;
-
+    private float currentHomeAngle = 0f;
     GPSTracker gpsTracker;
     //Location location;
     SharedPreferences sharedPreferences;
@@ -77,8 +85,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         }
         setOnHomeClick();
         setOnClockClick();
-        timeNotification();
-
     }
 
     @Override
@@ -108,6 +114,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         ra.setFillAfter(true);
         ivCompass.startAnimation(ra);
         currentAzimuth=-degree;
+        float alpha = gpsTracker.calculateAngleToHome()+currentAzimuth;
+        RotateAnimation ra2 = new RotateAnimation(currentHomeAngle,alpha,Animation.RELATIVE_TO_SELF,0.5f,
+                Animation.RELATIVE_TO_SELF,0.5f);
+        ra2.setDuration(210);
+        ra2.setFillAfter(true);
+        ivArrow.startAnimation(ra2);
+        currentHomeAngle = alpha;
 
     }
 
@@ -132,19 +145,36 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     }
 
     private void setOnHomeClick(){
+        final AlertDialog.Builder alert= new AlertDialog.Builder(this)
+                .setTitle(DOM)
+                .setMessage("")
+                .setPositiveButton(TAK, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        homeCoordinateX = gpsTracker.getCurrentCoordinateX();
+                        homeCoordinateY = gpsTracker.getCurrentCoordinateY();
+                        //homeCoordinateX=62;
+                        //homeCoordinateY=45;
+                        tvHomeCoordinates.setText("X: "+homeCoordinateX+", Y: "+homeCoordinateY);
+                        Toast toast = Toast.makeText(getApplicationContext(),ZAPISANO, Toast.LENGTH_SHORT);
+                        toast.setGravity(Gravity.CENTER | Gravity.BOTTOM ,0,10);
+                        toast.show();
+                        tvDistance.setText(gpsTracker.formatDistance(gpsTracker.calculateDistance()));
+                        saveToSharedPreferences();
+                        dialog.dismiss();
+                    }
+                })
+                .setNegativeButton(NIE, null)
+                .setCancelable(false);
+
         ivHomeButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                homeCoordinateX = gpsTracker.getCurrentCoordinateX();
-                homeCoordinateY = gpsTracker.getCurrentCoordinateY();
-                  //homeCoordinateX=62;
-                  //homeCoordinateY=45;
-                tvHomeCoordinates.setText("X: "+homeCoordinateX+", Y: "+homeCoordinateY);
-                Toast.makeText(getApplicationContext(),"Zapisano jako dom", Toast.LENGTH_SHORT).show();
-                saveToSharedPreferences();
+                alert.show();
             }
         });
     }
+
 
     private void setOnClockClick(){
         ivClockButton.setOnClickListener(new View.OnClickListener() {
@@ -159,6 +189,13 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 setTime.setCurrentHour(hour);
                 setTime.setCurrentMinute(minute);
 
+                setTime.setOnTimeChangedListener(new TimePicker.OnTimeChangedListener() {
+                    @Override
+                    public void onTimeChanged(TimePicker view, int hourOfDay, int minuteOfDay) {
+                        hour = hourOfDay;
+                        minute = minuteOfDay;
+                    }
+                });
 
                 dialogBuilder.setView(popUpSetHour);
                 final AlertDialog dialog = dialogBuilder.create();
@@ -167,11 +204,12 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 button.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
+                        //
+                        timeNotification();
+                        hour = setTime.getCurrentHour();
+                        minute = setTime.getCurrentMinute();
                         saveToSharedPreferences();
-                        hour = setTime.getCurrentHour();;
-                        minute = setTime.getCurrentMinute();;
                         dialog.dismiss();
-
 
                     }
                 });
@@ -218,7 +256,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
         tvDistance=findViewById(R.id.tv_distance);
         view=this.getWindow().getDecorView();
         sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
-        lightSensor=new LigthSensor(sensorManager,view, tvDistance,tvHomeCoordinates);
+        lightSensor=new LigthSensor(sensorManager,view, tvDistance,tvHomeCoordinates, ivArrow);
         gpsTracker = new GPSTracker(getApplicationContext(), tvDistance,ivArrow);
         //location = gpsTracker.getLocation();
         tvDistance.setText(Double.toString(gpsTracker.getDistance()));
@@ -228,18 +266,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         Calendar cal = Calendar.getInstance();
         Calendar dest = Calendar.getInstance();
-        dest.set(Calendar.HOUR, hour);
+        dest.set(Calendar.HOUR_OF_DAY, hour);
         dest.set(Calendar.MINUTE, minute);
         dest.set(Calendar.SECOND, 0);
 
-        long delta = dest.getTimeInMillis()-cal.getTimeInMillis();
+        final long delta = dest.getTime().getTime()-cal.getTime().getTime();
+
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
                 final AlertDialog.Builder dialogBuilder=new AlertDialog.Builder(MainActivity.this);
                 final View popUpSetHour=getLayoutInflater().inflate(R.layout.pop_up_do_domu,null);
 
-                Button button=findViewById(R.id.button_juz_biegne);
+                Button button=popUpSetHour.findViewById(R.id.button_juz_biegne);
+
+                ImageView imageView=popUpSetHour.findViewById(R.id.iv_angry_face);
+                imageView.setImageBitmap(getBitmapFromAssets(angryFaceFile));
 
                 dialogBuilder.setView(popUpSetHour);
                 final AlertDialog dialog = dialogBuilder.create();
@@ -249,9 +291,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 button.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        finish();
+                        dialog.dismiss();
                     }
                 });
+
             }
         }, delta);
 

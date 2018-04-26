@@ -7,6 +7,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 /**
@@ -15,7 +16,7 @@ import android.widget.TextView;
 
 public class LigthSensor implements SensorEventListener{
 
-    public static final int MINIMUM_LIGHT=50;
+    public static final int MINIMUM_LIGHT=20;
 
     SensorManager sensorManager;
     Sensor lightSensor;
@@ -23,8 +24,9 @@ public class LigthSensor implements SensorEventListener{
     View view;
     TextView tvDistance;
     TextView tvCoords;
+    ImageView ivArrow;
 
-    public LigthSensor(SensorManager sensorManager, View view, TextView tvDistance, TextView tvCoords){
+    public LigthSensor(SensorManager sensorManager, View view, TextView tvDistance, TextView tvCoords, ImageView ivArrow){
         this.sensorManager=sensorManager;
         lightSensor=sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
         this.view=view;
@@ -34,6 +36,7 @@ public class LigthSensor implements SensorEventListener{
         }
         this.tvDistance=tvDistance;
         this.tvCoords=tvCoords;
+        this.ivArrow=ivArrow;
     }
 
     @Override
@@ -42,14 +45,16 @@ public class LigthSensor implements SensorEventListener{
             currentLight=event.values[0];
             //System.out.println(currentLight);
             if(currentLight>MINIMUM_LIGHT) {
-                view.setBackgroundColor(view.getResources().getColor(R.color.colorAccent));
+                view.setBackgroundColor(view.getResources().getColor(R.color.background));
                 tvCoords.setTextColor(view.getResources().getColor(R.color.textDark));
                 tvDistance.setTextColor(view.getResources().getColor(R.color.textDark));
+                ivArrow.setColorFilter(Color.BLACK);
             }
             else{
                 view.setBackgroundColor(view.getResources().getColor(R.color.colorPrimary));
                 tvCoords.setTextColor(view.getResources().getColor(R.color.textLight));
                 tvDistance.setTextColor(view.getResources().getColor(R.color.textLight));
+                ivArrow.setColorFilter(Color.rgb(200,35,26));
             }
             //System.out.println(currentLight);
 
