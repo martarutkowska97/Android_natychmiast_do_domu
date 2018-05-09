@@ -13,23 +13,25 @@ public class CompassSensor implements SensorEventListener{
 
     private SensorManager sensorManager;
     private CompassSensorListener listener;
-
-    private float currentAzimuth = 0f;
-    private float degree=0f;
+    private Sensor magneticSensor;
 
 
-    public CompassSensor(SensorManager sensorManager, CompassSensorListener listener){
+    CompassSensor(SensorManager sensorManager, CompassSensorListener listener){
         this.sensorManager=sensorManager;
         this.listener=listener;
+
+        magneticSensor=sensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION);
+        if(magneticSensor != null){
+            registerListener();
+        }
     }
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if(event.sensor.getType()==Sensor.TYPE_MAGNETIC_FIELD){
-            degree = Math.round(event.values[0]);
-            currentAzimuth=-degree;
+        if(event.sensor.getType()==Sensor.TYPE_ORIENTATION){
+            float degree = Math.round(event.values[0]);
 
             if(listener!=null) {
-                listener.onCompassSensorChanged(currentAzimuth,degree);
+                listener.onCompassSensorChanged(degree);
             }
         }
     }
@@ -37,5 +39,11 @@ public class CompassSensor implements SensorEventListener{
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
+    }
+    public void registerListener(){
+        sensorManager.registerListener(this, magneticSensor, SensorManager.SENSOR_DELAY_GAME);
+    }
+    public void unregisterListener(){
+        sensorManager.unregisterListener(this);
     }
 }

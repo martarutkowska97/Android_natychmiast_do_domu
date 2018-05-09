@@ -22,10 +22,9 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
-
 import java.util.Calendar;
 
-public class MainActivity extends AppCompatActivity implements SensorEventListener{
+public class MainActivity extends AppCompatActivity{
 
     public static final int MINIMUM_LIGHT=20;
 
@@ -35,9 +34,6 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     public static final String SHARED_PREFERENCES_MINUTES = "minutes";
     public static final String SET_HOME="?";
 
-    public static double homeCoordinateX;
-    public static double homeCoordinateY;
-
     ImageView ivCompass;
     ImageView ivArrow;
     ImageView ivHomeButton;
@@ -46,17 +42,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     TextView tvDistance;
 
     private SensorManager sensorManager;
-    private float currentAzimuth = 0f;
-    private float currentHomeAngle = 0f;
-    GPSTracker gpsTracker;
+    private GPSTracker gpsTracker;
+    private LocationManager locationManager;
+    private CompassSensor compassSensor;
 
-    CompassSensor compassSensor;
+    private SharedPreferences sharedPreferences;
+    private LightSensor lightSensor;
 
-    SharedPreferences sharedPreferences;
-    LightSensor lightSensor;
-    View view;
-
-    TimeHolder timeHolder;
+    private TimeHolder timeHolder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,37 +69,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onResume() {
         super.onResume();
-        sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION),
-                SensorManager.SENSOR_DELAY_GAME);
+
         lightSensor.registerListener();
         gpsTracker.startLocationUpdates();
-
+        compassSensor.registerListener();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        sensorManager.unregisterListener(this);
         lightSensor.unregisterListener();
         gpsTracker.stopLocationUpdates();
-    }
-
-    @Override
-    public void onSensorChanged(SensorEvent event) {
-
-        float alpha = gpsTracker.calculateAngleToHome()+currentAzimuth;
-        RotateAnimation ra2 = new RotateAnimation(currentHomeAngle,alpha,Animation.RELATIVE_TO_SELF,0.5f,
-                Animation.RELATIVE_TO_SELF,0.5f);
-        ra2.setDuration(210);
-        ra2.setFillAfter(true);
-        ivArrow.startAnimation(ra2);
-        currentHomeAngle = alpha;
-
-    }
-
-    @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
+        compassSensor.unregisterListener();
     }
 
     private void setOnHomeClick(){
@@ -115,13 +89,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 .setPositiveButton(getResources().getString(R.string.tak), new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        homeCoordinateX = gpsTracker.getCurrentCoordinateX();
-                        homeCoordinateY = gpsTracker.getCurrentCoordinateY();
-                        tvHomeCoordinates.setText("X: "+homeCoordinateX+", Y: "+homeCoordinateY);
+                        locationManager.setHomeCoordinateX(locationManager.getCurrentCoordinateX());
+                        locationManager.setHomeCoordinateY(locationManager.getCurrentCoordinateY());
+
+                        tvHomeCoordinates.setText("X: "+locationManager.getHomeCoordinateX()+", Y: "+locationManager.getHomeCoordinateY());
                         Toast toast = Toast.makeText(getApplicationContext(),getResources().getString(R.string.zapisano), Toast.LENGTH_SHORT);
                         toast.setGravity(Gravity.CENTER | Gravity.BOTTOM ,0,10);
                         toast.show();
-                        tvDistance.setText(gpsTracker.formatDistance(gpsTracker.calculateDistance()));
+                        tvDistance.setText(locationManager.formatDistance(locationManager.calculateDistance()));
                         saveToSharedPreferences();
                         dialog.dismiss();
                     }
@@ -181,8 +156,8 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private void saveToSharedPreferences(){
         if(sharedPreferences!=null){
             SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putString(SHARED_PREFERENCES_X_COORD, Double.toString(homeCoordinateX));
-            editor.putString(SHARED_PREFERENCES_Y_COORD, Double.toString(homeCoordinateY));
+            editor.putString(SHARED_PREFERENCES_X_COORD, Double.toString(locationManager.getHomeCoordinateX()));
+            editor.putString(SHARED_PREFERENCES_Y_COORD, Double.toString(locationManager.getCurrentCoordinateY()));
             editor.putInt(SHARED_PREFERENCES_HOUR, timeHolder.getHour());
             editor.putInt(SHARED_PREFERENCES_MINUTES,timeHolder.getMinute());
             editor.apply();
@@ -191,18 +166,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     private void loadStateFomSharedPreferences(){
         if(sharedPreferences!=null){
-            homeCoordinateX = Double.parseDouble(sharedPreferences.getString(SHARED_PREFERENCES_X_COORD, SET_HOME));
-            homeCoordinateY = Double.parseDouble(sharedPreferences.getString(SHARED_PREFERENCES_Y_COORD, SET_HOME));
+            locationManager.setHomeCoordinateX(Double.parseDouble(sharedPreferences.getString(SHARED_PREFERENCES_X_COORD, SET_HOME)));
+            locationManager.setHomeCoordinateY(Double.parseDouble(sharedPreferences.getString(SHARED_PREFERENCES_Y_COORD, SET_HOME)));
             timeHolder.setHour(sharedPreferences.getInt(SHARED_PREFERENCES_HOUR,0));
             timeHolder.setMinute(sharedPreferences.getInt(SHARED_PREFERENCES_MINUTES,0));
-            tvHomeCoordinates.setText("X: "+homeCoordinateX+", Y: "+homeCoordinateY);
+            tvHomeCoordinates.setText("X: "+locationManager.getHomeCoordinateX()+", Y: "+locationManager.getHomeCoordinateY());
         }
     }
 
     private void initializeLightListener(){
+
+        final View view = this.getWindow().getDecorView().findViewById(android.R.id.content);
+
         LightSensorListener lightListener = new LightSensorListener() {
             @Override
             public void onLightSensorChange(float intensity) {
+
                 if(intensity>MINIMUM_LIGHT) {
                     view.setBackgroundColor(view.getResources().getColor(R.color.background));
                     tvHomeCoordinates.setTextColor(view.getResources().getColor(R.color.textDark));
@@ -223,18 +202,42 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private void initializeCompassListener(){
         CompassSensorListener compassListener= new CompassSensorListener() {
             @Override
-            public void onCompassSensorChanged(float currentAzimuth, float degree) {
-                RotateAnimation ra = new RotateAnimation(currentAzimuth,-degree,Animation.RELATIVE_TO_SELF,0.5f,
+            public void onCompassSensorChanged(float degree) {
+
+                RotateAnimation ra = new RotateAnimation(locationManager.getCurrentAzimuth(),-degree,Animation.RELATIVE_TO_SELF,0.5f,
                         Animation.RELATIVE_TO_SELF,0.5f);
                 ra.setDuration(210);
                 ra.setFillAfter(true);
                 ivCompass.startAnimation(ra);
+                locationManager.setCurrentAzimuth(-degree);
             }
         };
-
         compassSensor=new CompassSensor(sensorManager,compassListener);
-
     }
+
+    private void initializeGPSTracker(){
+        GPSTrackerListener gpsTrackerListener= new GPSTrackerListener() {
+            @Override
+            public void onGPSUpdate(double latitude, double longitude) {
+
+                locationManager.setCurrentCoordinateX(latitude);
+                locationManager.setCurrentCoordinateY(longitude);
+
+                tvDistance.setText(locationManager.formatDistance(locationManager.calculateDistance()));
+
+                float alpha = locationManager.calculateAngleToHome()+locationManager.getCurrentAzimuth();
+                RotateAnimation ra2 = new RotateAnimation(locationManager.getCurrentHomeAngle(),alpha,Animation.RELATIVE_TO_SELF,0.5f,
+                        Animation.RELATIVE_TO_SELF,0.5f);
+                ra2.setDuration(210);
+                ra2.setFillAfter(true);
+                ivArrow.startAnimation(ra2);
+                locationManager.setCurrentHomeAngle(alpha);
+            }
+        };
+        gpsTracker=new GPSTracker(gpsTrackerListener, getApplicationContext());
+        tvDistance.setText(Double.toString(locationManager.calculateDistance()));
+    }
+
 
     private void initialize(){
         BitmapLoader bitmapLoader=BitmapLoader.getInstance();
@@ -258,19 +261,11 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
         sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
         timeHolder=new TimeHolder();
+        locationManager=new LocationManager();
 
         initializeLightListener();
         initializeCompassListener();
-
-        GPSTrackerListener gpsTrackerListener= new GPSTrackerListener() {
-            @Override
-            public void onGPSUpdate() {
-
-            }
-        };
-
-        gpsTracker = new GPSTracker(getApplicationContext(), tvDistance,ivArrow, gpsTrackerListener);
-        tvDistance.setText(Double.toString(gpsTracker.getDistance()));
+        initializeGPSTracker();
     }
 
     public void timeNotification() {

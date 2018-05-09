@@ -5,5 +5,5 @@ package com.example.marta.sensorapplication;
  */
 
 public interface CompassSensorListener{
-    void onCompassSensorChanged(float currentAzimuth, float degree);
+    void onCompassSensorChanged(float degree);
 }

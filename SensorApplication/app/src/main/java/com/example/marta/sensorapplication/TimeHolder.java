@@ -9,7 +9,7 @@ public class TimeHolder {
     private int hour;
     private int minute;
 
-    public TimeHolder(){
+    TimeHolder(){
         this.hour=0;
         this.minute=0;
     }
