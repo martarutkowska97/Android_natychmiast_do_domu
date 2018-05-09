@@ -4,14 +4,11 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
-import android.content.res.AssetManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.location.Location;
 import android.os.Handler;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -21,33 +18,22 @@ import android.view.View;
 import android.view.animation.Animation;
 import android.view.animation.RotateAnimation;
 import android.widget.Button;
-import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
-import java.io.IOException;
-import java.io.InputStream;
+
 import java.util.Calendar;
-import java.util.Timer;
 
 public class MainActivity extends AppCompatActivity implements SensorEventListener{
 
-    private final String compassFile ="compass.png";
-    private final String homeButtonFile="house.png";
-    private final String clockFile="alarm-clock.png";
-    private final String arrowFile="arrow1.png";
-    private final String angryFaceFile="angry.png";
-
-    public static final String DOM="Czy na pewno tu jest Twój dom?";
-    public static final String TAK="TAK";
-    public static final String NIE="NIE";
-    public static final String ZAPISANO="Zapisano jako dom";
+    public static final int MINIMUM_LIGHT=20;
 
     public static final String SHARED_PREFERENCES_X_COORD = "xcoord";
     public static final String SHARED_PREFERENCES_Y_COORD = "ycoord";
     public static final String SHARED_PREFERENCES_HOUR = "hour";
     public static final String SHARED_PREFERENCES_MINUTES = "minutes";
+    public static final String SET_HOME="?";
 
     public static double homeCoordinateX;
     public static double homeCoordinateY;
@@ -63,14 +49,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float currentAzimuth = 0f;
     private float currentHomeAngle = 0f;
     GPSTracker gpsTracker;
-    //Location location;
+
+    CompassSensor compassSensor;
+
     SharedPreferences sharedPreferences;
-    LigthSensor lightSensor;
+    LightSensor lightSensor;
     View view;
 
-    int hour;
-    int minute;
-
+    TimeHolder timeHolder;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -107,13 +93,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        float degree = Math.round(event.values[0]);
-        RotateAnimation ra = new RotateAnimation(currentAzimuth,-degree,Animation.RELATIVE_TO_SELF,0.5f,
-                    Animation.RELATIVE_TO_SELF,0.5f);
-        ra.setDuration(210);
-        ra.setFillAfter(true);
-        ivCompass.startAnimation(ra);
-        currentAzimuth=-degree;
+
         float alpha = gpsTracker.calculateAngleToHome()+currentAzimuth;
         RotateAnimation ra2 = new RotateAnimation(currentHomeAngle,alpha,Animation.RELATIVE_TO_SELF,0.5f,
                 Animation.RELATIVE_TO_SELF,0.5f);
@@ -129,34 +109,16 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     }
 
-
-    private Bitmap getBitmapFromAssets(String fileName){
-
-        AssetManager am = getAssets();
-        InputStream is = null;
-        try{
-            is = am.open(fileName);
-        }catch(IOException e){
-            e.printStackTrace();
-        }
-
-        Bitmap bitmap = BitmapFactory.decodeStream(is);
-        return bitmap;
-    }
-
     private void setOnHomeClick(){
         final AlertDialog.Builder alert= new AlertDialog.Builder(this)
-                .setTitle(DOM)
-                .setMessage("")
-                .setPositiveButton(TAK, new DialogInterface.OnClickListener() {
+                .setTitle(getResources().getString(R.string.dom))
+                .setPositiveButton(getResources().getString(R.string.tak), new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         homeCoordinateX = gpsTracker.getCurrentCoordinateX();
                         homeCoordinateY = gpsTracker.getCurrentCoordinateY();
-                        //homeCoordinateX=62;
-                        //homeCoordinateY=45;
                         tvHomeCoordinates.setText("X: "+homeCoordinateX+", Y: "+homeCoordinateY);
-                        Toast toast = Toast.makeText(getApplicationContext(),ZAPISANO, Toast.LENGTH_SHORT);
+                        Toast toast = Toast.makeText(getApplicationContext(),getResources().getString(R.string.zapisano), Toast.LENGTH_SHORT);
                         toast.setGravity(Gravity.CENTER | Gravity.BOTTOM ,0,10);
                         toast.show();
                         tvDistance.setText(gpsTracker.formatDistance(gpsTracker.calculateDistance()));
@@ -164,7 +126,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         dialog.dismiss();
                     }
                 })
-                .setNegativeButton(NIE, null)
+                .setNegativeButton(getResources().getString(R.string.nie), null)
                 .setCancelable(false);
 
         ivHomeButton.setOnClickListener(new View.OnClickListener() {
@@ -186,14 +148,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 final TimePicker setTime=popUpSetHour.findViewById(R.id.time_picker);
                 Button button=popUpSetHour.findViewById(R.id.button_sethour);
 
-                setTime.setCurrentHour(hour);
-                setTime.setCurrentMinute(minute);
+                setTime.setCurrentHour(timeHolder.getHour());
+                setTime.setCurrentMinute(timeHolder.getMinute());
 
                 setTime.setOnTimeChangedListener(new TimePicker.OnTimeChangedListener() {
                     @Override
                     public void onTimeChanged(TimePicker view, int hourOfDay, int minuteOfDay) {
-                        hour = hourOfDay;
-                        minute = minuteOfDay;
+                        timeHolder.setHour(hourOfDay);
+                        timeHolder.setMinute(minuteOfDay);
                     }
                 });
 
@@ -204,10 +166,9 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 button.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        //
                         timeNotification();
-                        hour = setTime.getCurrentHour();
-                        minute = setTime.getCurrentMinute();
+                        timeHolder.setHour(setTime.getCurrentHour());
+                        timeHolder.setMinute(setTime.getCurrentMinute());
                         saveToSharedPreferences();
                         dialog.dismiss();
 
@@ -222,66 +183,117 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             SharedPreferences.Editor editor = sharedPreferences.edit();
             editor.putString(SHARED_PREFERENCES_X_COORD, Double.toString(homeCoordinateX));
             editor.putString(SHARED_PREFERENCES_Y_COORD, Double.toString(homeCoordinateY));
-            editor.putInt(SHARED_PREFERENCES_HOUR, hour);
-            editor.putInt(SHARED_PREFERENCES_MINUTES,minute);
+            editor.putInt(SHARED_PREFERENCES_HOUR, timeHolder.getHour());
+            editor.putInt(SHARED_PREFERENCES_MINUTES,timeHolder.getMinute());
             editor.apply();
-
         }
     }
 
     private void loadStateFomSharedPreferences(){
         if(sharedPreferences!=null){
-            homeCoordinateX = Double.parseDouble(sharedPreferences.getString(SHARED_PREFERENCES_X_COORD, "-1"));
-            homeCoordinateY = Double.parseDouble(sharedPreferences.getString(SHARED_PREFERENCES_Y_COORD, "-1"));
-            hour=sharedPreferences.getInt(SHARED_PREFERENCES_HOUR,0);
-            minute=sharedPreferences.getInt(SHARED_PREFERENCES_MINUTES,0);
+            homeCoordinateX = Double.parseDouble(sharedPreferences.getString(SHARED_PREFERENCES_X_COORD, SET_HOME));
+            homeCoordinateY = Double.parseDouble(sharedPreferences.getString(SHARED_PREFERENCES_Y_COORD, SET_HOME));
+            timeHolder.setHour(sharedPreferences.getInt(SHARED_PREFERENCES_HOUR,0));
+            timeHolder.setMinute(sharedPreferences.getInt(SHARED_PREFERENCES_MINUTES,0));
             tvHomeCoordinates.setText("X: "+homeCoordinateX+", Y: "+homeCoordinateY);
         }
     }
+
+    private void initializeLightListener(){
+        LightSensorListener lightListener = new LightSensorListener() {
+            @Override
+            public void onLightSensorChange(float intensity) {
+                if(intensity>MINIMUM_LIGHT) {
+                    view.setBackgroundColor(view.getResources().getColor(R.color.background));
+                    tvHomeCoordinates.setTextColor(view.getResources().getColor(R.color.textDark));
+                    tvDistance.setTextColor(view.getResources().getColor(R.color.textDark));
+                    ivArrow.setColorFilter(Color.BLACK);
+                }
+                else{
+                    view.setBackgroundColor(view.getResources().getColor(R.color.colorPrimary));
+                    tvHomeCoordinates.setTextColor(view.getResources().getColor(R.color.textLight));
+                    tvDistance.setTextColor(view.getResources().getColor(R.color.textLight));
+                    ivArrow.setColorFilter(Color.rgb(200,35,26));
+                }
+            }
+        };
+        lightSensor=new LightSensor(sensorManager, lightListener);
+    }
+
+    private void initializeCompassListener(){
+        CompassSensorListener compassListener= new CompassSensorListener() {
+            @Override
+            public void onCompassSensorChanged(float currentAzimuth, float degree) {
+                RotateAnimation ra = new RotateAnimation(currentAzimuth,-degree,Animation.RELATIVE_TO_SELF,0.5f,
+                        Animation.RELATIVE_TO_SELF,0.5f);
+                ra.setDuration(210);
+                ra.setFillAfter(true);
+                ivCompass.startAnimation(ra);
+            }
+        };
+
+        compassSensor=new CompassSensor(sensorManager,compassListener);
+
+    }
+
     private void initialize(){
+        BitmapLoader bitmapLoader=BitmapLoader.getInstance();
+
         ivCompass =findViewById(R.id.iv_compass);
-        ivCompass.setImageBitmap(getBitmapFromAssets(compassFile));
+        ivCompass.setImageBitmap(bitmapLoader.getBitmapFromAssets(getResources().getString(R.string.compass_file),this));
 
         ivArrow=findViewById(R.id.iv_arrow);
-        ivArrow.setImageBitmap(getBitmapFromAssets(arrowFile));
+        ivArrow.setImageBitmap(bitmapLoader.getBitmapFromAssets(getResources().getString(R.string.arrow_file),this));
 
         ivHomeButton=findViewById(R.id.iv_home_button);
-        ivHomeButton.setImageBitmap(getBitmapFromAssets(homeButtonFile));
+        ivHomeButton.setImageBitmap(bitmapLoader.getBitmapFromAssets(getResources().getString(R.string.home_button_file),this));
 
         ivClockButton=findViewById(R.id.iv_clock_button);
-        ivClockButton.setImageBitmap(getBitmapFromAssets(clockFile));
+        ivClockButton.setImageBitmap(bitmapLoader.getBitmapFromAssets(getResources().getString(R.string.alarm_button_file),this));
 
-        sharedPreferences=this.getPreferences(Context.MODE_PRIVATE);
         tvHomeCoordinates=findViewById(R.id.test);
         tvDistance=findViewById(R.id.tv_distance);
-        view=this.getWindow().getDecorView();
+
+        sharedPreferences=this.getPreferences(Context.MODE_PRIVATE);
+
         sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
-        lightSensor=new LigthSensor(sensorManager,view, tvDistance,tvHomeCoordinates, ivArrow);
-        gpsTracker = new GPSTracker(getApplicationContext(), tvDistance,ivArrow);
-        //location = gpsTracker.getLocation();
+        timeHolder=new TimeHolder();
+
+        initializeLightListener();
+        initializeCompassListener();
+
+        GPSTrackerListener gpsTrackerListener= new GPSTrackerListener() {
+            @Override
+            public void onGPSUpdate() {
+
+            }
+        };
+
+        gpsTracker = new GPSTracker(getApplicationContext(), tvDistance,ivArrow, gpsTrackerListener);
         tvDistance.setText(Double.toString(gpsTracker.getDistance()));
     }
 
-    public void timeNotification(){
+    public void timeNotification() {
 
         Calendar cal = Calendar.getInstance();
         Calendar dest = Calendar.getInstance();
-        dest.set(Calendar.HOUR_OF_DAY, hour);
-        dest.set(Calendar.MINUTE, minute);
+        dest.set(Calendar.HOUR_OF_DAY, timeHolder.getHour());
+        dest.set(Calendar.MINUTE, timeHolder.getMinute());
         dest.set(Calendar.SECOND, 0);
 
-        final long delta = dest.getTime().getTime()-cal.getTime().getTime();
+        final long delta = dest.getTime().getTime() - cal.getTime().getTime();
 
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                final AlertDialog.Builder dialogBuilder=new AlertDialog.Builder(MainActivity.this);
-                final View popUpSetHour=getLayoutInflater().inflate(R.layout.pop_up_do_domu,null);
+                BitmapLoader bitmapLoader = BitmapLoader.getInstance();
+                final AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(MainActivity.this);
+                final View popUpSetHour = getLayoutInflater().inflate(R.layout.pop_up_do_domu, null);
 
-                Button button=popUpSetHour.findViewById(R.id.button_juz_biegne);
+                Button button = popUpSetHour.findViewById(R.id.button_juz_biegne);
 
-                ImageView imageView=popUpSetHour.findViewById(R.id.iv_angry_face);
-                imageView.setImageBitmap(getBitmapFromAssets(angryFaceFile));
+                ImageView ivAngryFace = popUpSetHour.findViewById(R.id.iv_angry_face);
+                ivAngryFace.setImageBitmap(bitmapLoader.getBitmapFromAssets(getResources().getString(R.string.angry_face_file), getApplicationContext()));
 
                 dialogBuilder.setView(popUpSetHour);
                 final AlertDialog dialog = dialogBuilder.create();
@@ -294,9 +306,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                         dialog.dismiss();
                     }
                 });
-
             }
         }, delta);
-
     }
 }

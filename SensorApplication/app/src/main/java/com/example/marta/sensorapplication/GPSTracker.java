@@ -32,20 +32,22 @@ public class GPSTracker{
     public static double currentCoordinateX;
     public static double currentCoordinateY;
     public static double distance;
+
     final TextView tvDistance;
     final ImageView ivArrow;
 
-    //private LocationCallback locationCallback;
     private FusedLocationProviderClient fusedLocationProviderClient;
     private LocationCallback locationCallback;
     LocationRequest locationRequest;
+
+    GPSTrackerListener gpsTrackerListener;
 
     //distance liczony z haversine formula
 
     public static final float R=6371000; //metry promień ziemi
 
 
-    public GPSTracker(Context context,final TextView tvDistance, ImageView ivArrow) {
+    public GPSTracker(Context context,final TextView tvDistance, ImageView ivArrow, GPSTrackerListener gpsTrackerListener) {
         super();
         this.context = context;
         this.tvDistance=tvDistance;
@@ -53,6 +55,7 @@ public class GPSTracker{
         fusedLocationProviderClient= LocationServices.getFusedLocationProviderClient(context);
         getLocation();
 
+        this.gpsTrackerListener=gpsTrackerListener;
 
 
         locationCallback = new LocationCallback() {
@@ -62,8 +65,6 @@ public class GPSTracker{
                     return;
                 }
                 for (Location location : locationResult.getLocations()) {
-                    // Update UI with location data
-                    // ...
                     currentCoordinateX = location.getLatitude();
                     currentCoordinateY = location.getLongitude();
                     distance = calculateDistance();

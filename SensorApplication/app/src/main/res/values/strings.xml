@@ -1,7 +1,23 @@
+
+
 <resources>
     <string name="app_name">Natychmiast do domu!</string>
     <string name="zeros">00</string>
     <string name="do_domu">DO DOMU!</string>
     <string name="ju_wracam_tato">Już wracam tato!</string>
     <string name="natychmiast_do_domu">NATYCHMIAST DO DOMU!</string>
+
+    <string name="compass_file">compass.png</string>
+    <string name="home_button_file">house.png</string>
+    <string name="alarm_button_file">alarm-clock.png</string>
+    <string name="arrow_file">arrow1.png</string>
+    <string name="angry_face_file">angry.png</string>
+
+    <string name="tak">TAK</string>
+    <string name="nie">NIE</string>
+    <string name="dom">"Czy na pewno tu jest Twój dom?</string>
+    <string name="zapisano">Zapisano jako dom</string>
+
+
+
 </resources>
