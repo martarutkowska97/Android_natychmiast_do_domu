@@ -17,6 +17,7 @@
     <string name="nie">NIE</string>
     <string name="dom">"Czy na pewno tu jest Twój dom?</string>
     <string name="zapisano">Zapisano jako dom</string>
+    <string name="no_permission">Aplikacja nie uzyskała odpowiednich zezwoleń</string>
 
 
 

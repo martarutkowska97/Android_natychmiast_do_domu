@@ -5,9 +5,6 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.graphics.Color;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Handler;
 import android.support.v4.app.ActivityCompat;
@@ -32,7 +29,9 @@ public class MainActivity extends AppCompatActivity{
     public static final String SHARED_PREFERENCES_Y_COORD = "ycoord";
     public static final String SHARED_PREFERENCES_HOUR = "hour";
     public static final String SHARED_PREFERENCES_MINUTES = "minutes";
-    public static final String SET_HOME="?";
+    public static final String SET_HOME="0";
+
+    public static final int MILISECONDS_IN_A_DAY=86400*1000;
 
     ImageView ivCompass;
     ImageView ivArrow;
@@ -183,13 +182,13 @@ public class MainActivity extends AppCompatActivity{
             public void onLightSensorChange(float intensity) {
 
                 if(intensity>MINIMUM_LIGHT) {
-                    view.setBackgroundColor(view.getResources().getColor(R.color.background));
+                    view.setBackgroundColor(view.getResources().getColor(R.color.backgroundLight));
                     tvHomeCoordinates.setTextColor(view.getResources().getColor(R.color.textDark));
                     tvDistance.setTextColor(view.getResources().getColor(R.color.textDark));
                     ivArrow.setColorFilter(Color.BLACK);
                 }
                 else{
-                    view.setBackgroundColor(view.getResources().getColor(R.color.colorPrimary));
+                    view.setBackgroundColor(view.getResources().getColor(R.color.backgroundDark));
                     tvHomeCoordinates.setTextColor(view.getResources().getColor(R.color.textLight));
                     tvDistance.setTextColor(view.getResources().getColor(R.color.textLight));
                     ivArrow.setColorFilter(Color.rgb(200,35,26));
@@ -210,6 +209,14 @@ public class MainActivity extends AppCompatActivity{
                 ra.setFillAfter(true);
                 ivCompass.startAnimation(ra);
                 locationManager.setCurrentAzimuth(-degree);
+
+                float alpha = locationManager.calculateAngleToHome()+locationManager.getCurrentAzimuth();
+                RotateAnimation ra2 = new RotateAnimation(locationManager.getCurrentHomeAngle(),alpha,Animation.RELATIVE_TO_SELF,0.5f,
+                        Animation.RELATIVE_TO_SELF,0.5f);
+                ra2.setDuration(210);
+                ra2.setFillAfter(true);
+                ivArrow.startAnimation(ra2);
+                locationManager.setCurrentHomeAngle(alpha);
             }
         };
         compassSensor=new CompassSensor(sensorManager,compassListener);
@@ -225,13 +232,6 @@ public class MainActivity extends AppCompatActivity{
 
                 tvDistance.setText(locationManager.formatDistance(locationManager.calculateDistance()));
 
-                float alpha = locationManager.calculateAngleToHome()+locationManager.getCurrentAzimuth();
-                RotateAnimation ra2 = new RotateAnimation(locationManager.getCurrentHomeAngle(),alpha,Animation.RELATIVE_TO_SELF,0.5f,
-                        Animation.RELATIVE_TO_SELF,0.5f);
-                ra2.setDuration(210);
-                ra2.setFillAfter(true);
-                ivArrow.startAnimation(ra2);
-                locationManager.setCurrentHomeAngle(alpha);
             }
         };
         gpsTracker=new GPSTracker(gpsTrackerListener, getApplicationContext());
@@ -276,7 +276,11 @@ public class MainActivity extends AppCompatActivity{
         dest.set(Calendar.MINUTE, timeHolder.getMinute());
         dest.set(Calendar.SECOND, 0);
 
-        final long delta = dest.getTime().getTime() - cal.getTime().getTime();
+        long delta = dest.getTime().getTime() - cal.getTime().getTime();
+        //System.out.println(delta);
+        if(delta<0){
+            delta+=(MILISECONDS_IN_A_DAY);
+        }
 
         new Handler().postDelayed(new Runnable() {
             @Override
