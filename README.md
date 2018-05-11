@@ -18,7 +18,7 @@
 w linii prostej, wkazując jak daleko musicie jeszcze iść. Dzięki wykorzystaniu sensorów wskazuje poprawny kierunek, dodatkowo 
 ustalając cztery strony świata.
 
-![alt text] (https://github.com/martarutkowska97/Android_natychmiast_do_domu/blob/master/screenshot/s2.png)
+![alt text](https://github.com/martarutkowska97/Android_natychmiast_do_domu/blob/master/screenshot/s2.png)
 
 "Natychmiast do domu!" zostało ulepszone o czujnik światła, który w ciemności dostosowuje kolory, tak by było nam komfortowo oraz żebyśmy
 w ciemności nie ściągali na siebie niebezpieczeństw (osiedlowych osiłków), świecąc telefonem.
