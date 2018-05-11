@@ -8,6 +8,7 @@
     <string name="natychmiast_do_domu">NATYCHMIAST DO DOMU!</string>
 
     <string name="compass_file">compass.png</string>
+    <string name="compass_dark_file">compassDark.png</string>
     <string name="home_button_file">house.png</string>
     <string name="alarm_button_file">alarm-clock.png</string>
     <string name="arrow_file">arrow1.png</string>

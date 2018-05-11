@@ -8,8 +8,8 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.support.v4.content.ContextCompat;
+import android.widget.TextView;
 import android.widget.Toast;
-
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -22,10 +22,10 @@ public class GPSTracker{
     private final Context context;
     private FusedLocationProviderClient fusedLocationProviderClient;
     private LocationCallback locationCallback;
-    private GPSTrackerListener gpsTrackerListener;
+    private final GPSTrackerListener gpsTrackerListener;
 
 
-    GPSTracker(GPSTrackerListener gpsTrackerListener, final Context context) {
+    GPSTracker(final GPSTrackerListener gpsTrackerListener, final Context context) {
         super();
         this.context=context;
         fusedLocationProviderClient=LocationServices.getFusedLocationProviderClient(context);
@@ -42,6 +42,21 @@ public class GPSTracker{
 
         };
 
+        locationCallback = new LocationCallback() {
+            @Override
+            public void onLocationResult(LocationResult locationResult) {
+                if (locationResult == null) {
+                    return;
+                }
+                for (Location location : locationResult.getLocations()) {
+                    // Update UI with location data
+                    // ...
+
+                    gpsTrackerListener.onCoordinatesUpdate(location.getLatitude(),location.getLongitude());
+
+                }
+            }
+        };
         startLocationUpdates();
     }
 
@@ -64,8 +79,8 @@ public class GPSTracker{
         LocationRequest locationRequest;
         locationRequest = LocationRequest.create();
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        locationRequest.setInterval(10);
-        locationRequest.setFastestInterval(10);
+        locationRequest.setInterval(1000);
+        locationRequest.setFastestInterval(1000);
 
         if(ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION ) != PackageManager.PERMISSION_GRANTED) {
             Toast.makeText(context,R.string.no_permission,Toast.LENGTH_LONG).show();

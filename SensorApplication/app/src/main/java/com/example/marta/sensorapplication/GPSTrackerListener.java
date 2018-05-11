@@ -6,4 +6,5 @@ package com.example.marta.sensorapplication;
 
 public interface GPSTrackerListener {
     void onGPSUpdate(double latitude, double longitude);
+    void onCoordinatesUpdate(double latitude, double longitude);
 }

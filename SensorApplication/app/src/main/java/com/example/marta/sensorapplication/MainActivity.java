@@ -49,6 +49,7 @@ public class MainActivity extends AppCompatActivity{
     private LightSensor lightSensor;
 
     private TimeHolder timeHolder;
+    BitmapLoader bitmapLoader;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -186,12 +187,14 @@ public class MainActivity extends AppCompatActivity{
                     tvHomeCoordinates.setTextColor(view.getResources().getColor(R.color.textDark));
                     tvDistance.setTextColor(view.getResources().getColor(R.color.textDark));
                     ivArrow.setColorFilter(Color.BLACK);
+                    ivCompass.setImageBitmap(bitmapLoader.getBitmapFromAssets(getResources().getString(R.string.compass_dark_file),getApplicationContext()));
                 }
                 else{
                     view.setBackgroundColor(view.getResources().getColor(R.color.backgroundDark));
                     tvHomeCoordinates.setTextColor(view.getResources().getColor(R.color.textLight));
                     tvDistance.setTextColor(view.getResources().getColor(R.color.textLight));
                     ivArrow.setColorFilter(Color.rgb(200,35,26));
+                    ivCompass.setImageBitmap(bitmapLoader.getBitmapFromAssets(getResources().getString(R.string.compass_file),getApplicationContext()));
                 }
             }
         };
@@ -230,8 +233,16 @@ public class MainActivity extends AppCompatActivity{
                 locationManager.setCurrentCoordinateX(latitude);
                 locationManager.setCurrentCoordinateY(longitude);
 
+                System.out.println(locationManager.formatDistance(locationManager.calculateDistance()));
                 tvDistance.setText(locationManager.formatDistance(locationManager.calculateDistance()));
 
+            }
+
+            @Override
+            public void onCoordinatesUpdate(double latitude, double longitude) {
+                locationManager.setCurrentCoordinateX(latitude);
+                locationManager.setHomeCoordinateY(longitude);
+                tvDistance.setText(locationManager.formatDistance(locationManager.calculateDistance()));
             }
         };
         gpsTracker=new GPSTracker(gpsTrackerListener, getApplicationContext());
@@ -240,10 +251,10 @@ public class MainActivity extends AppCompatActivity{
 
 
     private void initialize(){
-        BitmapLoader bitmapLoader=BitmapLoader.getInstance();
+        bitmapLoader=BitmapLoader.getInstance();
 
         ivCompass =findViewById(R.id.iv_compass);
-        ivCompass.setImageBitmap(bitmapLoader.getBitmapFromAssets(getResources().getString(R.string.compass_file),this));
+
 
         ivArrow=findViewById(R.id.iv_arrow);
         ivArrow.setImageBitmap(bitmapLoader.getBitmapFromAssets(getResources().getString(R.string.arrow_file),this));
@@ -277,7 +288,8 @@ public class MainActivity extends AppCompatActivity{
         dest.set(Calendar.SECOND, 0);
 
         long delta = dest.getTime().getTime() - cal.getTime().getTime();
-        //System.out.println(delta);
+        System.out.println(delta);
+
         if(delta<0){
             delta+=(MILISECONDS_IN_A_DAY);
         }
