@@ -6,9 +6,9 @@
 
 &#x1F34F; Czy zdarzyło się Wam zasiedzieć wieczorem u znajomych?
 
-&#x1F34E; Czy, kiedy się spóźnicie macie natychmiast szlaban?
+&#x1F34E; Czy, kiedy się spóźnicie, macie natychmiast szlaban?
 
-&#x1F34F; Czy Wasz rodzic zasypuje Was esemesami, jeżeli nie ma Was o określonej porze jeszcze w domu?
+&#x1F34F; Czy Wasz rodzic zasypuje Was esemesami, jeżeli nie ma Was jeszcze o określonej porze w domu?
 
 &#x1F34E; A może jesteście dorości i po prostu żona czeka na Was z wałkiem w dłoni?
 
