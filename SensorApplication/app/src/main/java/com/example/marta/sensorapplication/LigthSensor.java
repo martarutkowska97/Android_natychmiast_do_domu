@@ -45,7 +45,7 @@ public class LigthSensor implements SensorEventListener{
             currentLight=event.values[0];
             //System.out.println(currentLight);
             if(currentLight>MINIMUM_LIGHT) {
-                view.setBackgroundColor(view.getResources().getColor(R.color.background));
+                view.setBackgroundColor(view.getResources().getColor(R.color.backgroundLight));
                 tvCoords.setTextColor(view.getResources().getColor(R.color.textDark));
                 tvDistance.setTextColor(view.getResources().getColor(R.color.textDark));
                 ivArrow.setColorFilter(Color.BLACK);

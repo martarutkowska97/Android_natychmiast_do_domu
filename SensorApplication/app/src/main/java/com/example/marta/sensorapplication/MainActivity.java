@@ -1,6 +1,7 @@
 package com.example.marta.sensorapplication;
 import android.Manifest;
 import android.app.AlertDialog;
+import android.app.Notification;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
@@ -8,6 +9,9 @@ import android.graphics.Color;
 import android.hardware.SensorManager;
 import android.os.Handler;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.app.NotificationBuilderWithBuilderAccessor;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Gravity;
@@ -310,6 +314,7 @@ public class MainActivity extends AppCompatActivity{
                 final AlertDialog dialog = dialogBuilder.create();
                 dialog.setCancelable(false);
                 dialog.show();
+                createNotitification();
 
                 button.setOnClickListener(new View.OnClickListener() {
                     @Override
@@ -319,5 +324,20 @@ public class MainActivity extends AppCompatActivity{
                 });
             }
         }, delta);
+    }
+
+    private void createNotitification(){
+
+        NotificationCompat.Builder notificationBuilder= new NotificationCompat.Builder(this, "")
+                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setContentTitle(getResources().getString(R.string.natychmiast_do_domu))
+                //.setContentText(textContent)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+
+        // notificationId is a unique int for each notification that you must define
+        notificationManager.notify(0, notificationBuilder.build());
+
     }
 }
